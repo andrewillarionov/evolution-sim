@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Генетика: Хищники и Половой отбор</title>
+<title>Генетика: Хищники 2.0</title>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; }
@@ -14,20 +14,21 @@
     background: #0f172a; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 16px;
   }
-  #startScreen h1 { font-size: 28px; margin: 0; }
-  #startScreen p { color: #94a3b8; max-width: 500px; text-align: center; margin: 0; }
+  #startScreen h1 { font-size: 28px; margin: 0; color: #38bdf8; }
+  #startScreen p { color: #94a3b8; max-width: 500px; text-align: center; margin: 0; line-height: 1.5; }
   #startScreen .sliderRow { display: flex; align-items: center; gap: 12px; }
   #startScreen input[type=range] { width: 260px; accent-color: #2563eb; }
   #startScreen .val { font-size: 20px; font-weight: bold; color: #38bdf8; min-width: 50px; text-align: center; }
   #startScreen button {
     background: #2563eb; color: white; border: 0; padding: 12px 32px;
-    border-radius: 10px; cursor: pointer; font-size: 16px;
+    border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold;
+    transition: background 0.2s;
   }
   #startScreen button:hover { background: #1d4ed8; }
 
   canvas { background: #1e293b; border-radius: 12px; display: block; }
   #panel { flex: 1; min-width: 300px; max-width: 420px; }
-  #panel h2 { margin: 0 0 8px; font-size: 18px; }
+  #panel h2 { margin: 0 0 8px; font-size: 18px; color: #f8fafc; }
   .stat { margin: 4px 0; font-size: 13px; color: #cbd5e1; }
   .stat b { color: #38bdf8; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
@@ -60,8 +61,8 @@
 <body>
 
 <div id="startScreen">
-  <h1>🧬 Хищники и Половой отбор</h1>
-  <p>Травоядные (кружки) едят еду. Хищники (треугольники) едят травоядных. 
+  <h1>🧬 Хищники 2.0</h1>
+  <p>Травоядные (кружки) едят еду. Хищники (треугольники) охотятся на травоядных. 
      Самки выбирают самцов с большей энергией. При высокой энергии пары рождаются двойни. 
      Клик по полю — подкинуть еды!</p>
   <div class="sliderRow">
@@ -70,7 +71,7 @@
     <span class="val" id="popVal">100</span>
   </div>
   <button id="startBtn">Начать симуляцию</button>
-  <div class="hint">Хищников будет 20% от стартовой популяции.</div>
+  <div class="hint">Хищников будет 20% от стартовой популяции. Баланс обновлён!</div>
 </div>
 
 <div id="app">
@@ -84,7 +85,7 @@
   </div>
 
   <div id="panel">
-    <h2>Статистика</h2>
+    <h2>Статистика (2.0)</h2>
     <div class="stat">Поколение: <b id="gen">0</b></div>
     <div class="stat">Травоядные: <b id="popHerb">0</b> (M: <b id="malesH">0</b>, F: <b id="femalesH">0</b>)</div>
     <div class="stat">Хищники: <b id="popPred">0</b> (M: <b id="malesP">0</b>, F: <b id="femalesP">0</b>)</div>
@@ -111,19 +112,19 @@
 
 <script>
 // ============================================================
-//  КОНСТАНТЫ
+//  КОНСТАНТЫ (ОТБАЛАНСИРОВАННЫЕ)
 // ============================================================
 const W = 600, H = 600;
-const FOOD_MAX = 400; 
-const FOOD_SPAWN_CHANCE = 0.4;
-const ENERGY_PER_FOOD = 40;
+const FOOD_MAX = 450;                 // Больше еды на поле
+const FOOD_SPAWN_CHANCE = 0.6;        // Еда появляется чаще
+const ENERGY_PER_FOOD = 45;
 const MOVE_COST = 0.12;
-const START_ENERGY = 80;
-const REPRO_THRESHOLD = 100;
+const START_ENERGY = 100;             // Стартовая энергия побольше
+const REPRO_THRESHOLD = 110;
 const REPRO_COST = 50;
 const REPRO_RADIUS = 35;
 const REPRO_COOLDOWN = 50;
-const REPRO_DOUBLE_THRESHOLD = 200;
+const REPRO_DOUBLE_THRESHOLD = 220;
 const MUTATION_CHANCE = 0.05;
 const MAX_AGE = 1200;
 const OLD_AGE_START = 600;
@@ -246,20 +247,22 @@ class Creature {
       const prey = this.findPrey();
       if (prey) {
         this.moveToward(prey.x, prey.y);
-        if (Math.hypot(prey.x - this.x, prey.y - this.y) < 10) {
+        // Радиус поедания хищника уменьшен до 5
+        if (Math.hypot(prey.x - this.x, prey.y - this.y) < 5) {
           prey.alive = false;
-          this.energy += prey.energy * 0.8; // Хищник получает 80% энергии жертвы
+          this.energy += prey.energy * 0.6; // 60% энергии жертвы
         }
       } else {
         this.x = clamp(this.x + rand(-1, 1) * this.pheno.speed * 0.5, 0, W);
         this.y = clamp(this.y + rand(-1, 1) * this.pheno.speed * 0.5, 0, H);
-        this.energy -= MOVE_COST * 0.3;
+        this.energy -= MOVE_COST * 0.4; // Чуть больше тратят на блуждание
       }
     } else {
       const food = this.findFood();
       if (food) {
         this.moveToward(food.x, food.y);
-        if (Math.hypot(food.x - this.x, food.y - this.y) < 8) {
+        // Радиус поедания еды увеличен до 7
+        if (Math.hypot(food.x - this.x, food.y - this.y) < 7) {
           food.alive = false;
           this.energy += ENERGY_PER_FOOD;
         }
@@ -586,7 +589,6 @@ const popSlider = document.getElementById('popSlider');
 const popVal = document.getElementById('popVal');
 popSlider.oninput = () => popVal.textContent = popSlider.value;
 
-// Запуск по кнопке
 document.getElementById('startBtn').onclick = () => {
   const n = parseInt(popSlider.value, 10);
   document.getElementById('startScreen').style.display = 'none';
@@ -610,13 +612,12 @@ document.getElementById('resetBtn').onclick = () => {
   document.getElementById('deadMsg').style.display = 'none';
 };
 
-// Обработка клика (тап по полю или по существу)
 canvas.onclick = (e) => {
   const rect = canvas.getBoundingClientRect();
   const mx = (e.clientX - rect.left) * (W / rect.width);
   const my = (e.clientY - rect.top) * (H / rect.height);
   
-  let best = null, bestD = 25; // Радиус клика по существу
+  let best = null, bestD = 25;
   for (const c of creatures) {
     if (!c.alive) continue;
     const d = Math.hypot(c.x - mx, c.y - my);
@@ -627,8 +628,7 @@ canvas.onclick = (e) => {
     selected = best; 
     renderPassport(selected);
   } else {
-    // Тап по пустому месту — добавляем еду
-    if (foods.length < FOOD_MAX + 100) { // Ограничитель, чтобы не заспамить
+    if (foods.length < FOOD_MAX + 100) {
         foods.push({ x: mx, y: my, alive: true });
     }
     selected = null;
@@ -636,7 +636,6 @@ canvas.onclick = (e) => {
   }
 };
 
-// Запускаем визуальный цикл (он будет рисовать пустое поле, пока не нажата кнопка Старт)
 loop();
 </script>
 </body>
