@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Генетика и эволюция</title>
+<title>Генетика и эволюция: Хищники и Половой отбор</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -76,16 +76,17 @@
 
 <!-- Стартовый экран -->
 <div id="startScreen">
-  <h1>🧬 Генетика и эволюция</h1>
-  <p>Существа с двумя генами (скорость и цвет), двумя полами и скрещиванием.
-     Меняешь стартовую популяцию — наблюдаешь судьбу. Вымирание — тоже результат.</p>
+  <h1>🧬 Хищники и Половой отбор</h1>
+  <p>Травоядные (кружки) едят еду. Хищники (треугольники) едят травоядных. 
+     Самки выбирают самцов с большей энергией. При высокой энергии пары рождаются двойни. 
+     Клик по полю — подкинуть еды!</p>
   <div class="sliderRow">
     <label>Стартовая популяция:</label>
-    <input type="range" id="popSlider" min="10" max="200" value="60" step="10">
-    <span class="val" id="popVal">60</span>
+    <input type="range" id="popSlider" min="20" max="250" value="80" step="10">
+    <span class="val" id="popVal">80</span>
   </div>
   <button id="startBtn">Начать симуляцию</button>
-  <div class="hint">Совет: при 10–20 особях часто вымирают; при 60–80 — баланс; при 150+ — устойчиво.</div>
+  <div class="hint">Хищников будет 20% от стартовой популяции.</div>
 </div>
 
 <!-- Основной интерфейс -->
@@ -93,17 +94,18 @@
   <div>
     <canvas id="world" width="600" height="600"></canvas>
     <div class="legend">
-      Цвет кружка: яркий = <b>C-</b>, бледный = <b>cc</b>. Размер: <b>SS</b> &gt; <b>Ss</b> &gt; <b>ss</b>.<br>
-      Клик по существу — паспорт. Кружки с обводкой — кулдаун размножения.
+      Кружки = травоядные, Треугольники = хищники. <br>
+      Яркий цвет = <b>C-</b>, бледный = <b>cc</b>. Размер: <b>SS</b> &gt; <b>Ss</b> &gt; <b>ss</b>.<br>
+      Клик по существу — паспорт. Клик по пустому месту — добавить еду.
     </div>
   </div>
 
   <div id="panel">
     <h2>Статистика</h2>
     <div class="stat">Поколение: <b id="gen">0</b></div>
-    <div class="stat">Живых: <b id="pop">0</b> (M: <b id="males">0</b>, F: <b id="females">0</b>)</div>
-    <div class="stat">Средняя энергия: <b id="avgEnergy">0</b></div>
-    <div class="stat">Средний возраст: <b id="avgAge">0</b></div>
+    <div class="stat">Травоядные: <b id="popHerb">0</b> (M: <b id="malesH">0</b>, F: <b id="femalesH">0</b>)</div>
+    <div class="stat">Хищники: <b id="popPred">0</b> (M: <b id="malesP">0</b>, F: <b id="femalesP">0</b>)</div>
+    <div class="stat">Еды на поле: <b id="foodCount">0</b></div>
     <div class="row">
       <button class="ctrl" id="pauseBtn">Пауза</button>
       <button class="ctrl" id="speedBtn">Скорость x1</button>
@@ -129,78 +131,62 @@
 //  КОНСТАНТЫ
 // ============================================================
 const W = 600, H = 600;
-const FOOD_MAX = 250;
-const FOOD_SPAWN_CHANCE = 0.3;   // шанс появления еды за тик
+const FOOD_MAX = 350; // Еды стало больше, чтобы прокормить травоядных
+const FOOD_SPAWN_CHANCE = 0.3;
 const ENERGY_PER_FOOD = 40;
 const MOVE_COST = 0.15;
 const START_ENERGY = 80;
-const REPRO_THRESHOLD = 100;     // энергия, нужная для размножения
-const REPRO_COST = 50;           // сколько теряет каждый родитель
-const REPRO_RADIUS = 30;         // радиус поиска партнёра
-const REPRO_COOLDOWN = 50;       // тиков после размножения
-const MUTATION_CHANCE = 0.05;    // шанс мутации аллеля
-const MAX_AGE = 1200;            // жёсткий предел (страховка)
-const OLD_AGE_START = 600;       // с этого возраста растёт шанс смерти
-const GEN_INTERVAL = 300;        // тиков на одно «поколение»
-const MIN_POP = 5;               // ниже — вымирание
+const REPRO_THRESHOLD = 100;
+const REPRO_COST = 50;
+const REPRO_RADIUS = 30;
+const REPRO_COOLDOWN = 50;
+const REPRO_DOUBLE_THRESHOLD = 200; // Порог для двойни
+const MUTATION_CHANCE = 0.05;
+const MAX_AGE = 1200;
+const OLD_AGE_START = 600;
+const GEN_INTERVAL = 300;
 
 // ============================================================
 //  ГЕНЕТИКА
-//  Каждый ген — две копии (диплоидность).
-//  Новый ген = добавить запись в GENES + правило фенотипа.
 // ============================================================
 const GENES = {
   speed: { alleles: ['S', 's'], default: 's' },
   color: { alleles: ['C', 'c'], default: 'c' }
 };
 
-// Вычисление фенотипа из генотипа
 function phenotype(genotype) {
-  // Скорость: неполное доминирование
   const sp = genotype.speed;
-  let speed;
+  let speed = 2;
   if (sp[0] === 'S' && sp[1] === 'S') speed = 3;
   else if (sp[0] === 's' && sp[1] === 's') speed = 1;
-  else speed = 2;
 
-  // Цвет: полное доминирование (C яркий > c бледный)
   const color = (genotype.color[0] === 'C' || genotype.color[1] === 'C') ? 'bright' : 'pale';
-
   return { speed, color };
 }
 
-// Случайный аллель гена
 function randomAllele(geneName) {
   const g = GENES[geneName];
   return g.alleles[Math.floor(Math.random() * g.alleles.length)];
 }
 
-// Случайный генотип
 function randomGenotype() {
   const gt = {};
-  for (const name in GENES) {
-    gt[name] = [randomAllele(name), randomAllele(name)];
-  }
+  for (const name in GENES) gt[name] = [randomAllele(name), randomAllele(name)];
   return gt;
 }
 
-// Мутация: с шансом заменяем аллель на другой из того же гена
 function mutateAllele(geneName, allele) {
   if (Math.random() > MUTATION_CHANCE) return allele;
   const g = GENES[geneName];
   const others = g.alleles.filter(a => a !== allele);
-  if (others.length === 0) return allele;
-  return others[Math.floor(Math.random() * others.length)];
+  return others.length ? others[Math.floor(Math.random() * others.length)] : allele;
 }
 
-// Скрещивание: по одному случайному аллелю от каждого родителя
 function crossGenotypes(gt1, gt2) {
   const child = {};
   for (const name in GENES) {
-    let a1 = gt1[name][Math.floor(Math.random() * 2)];
-    let a2 = gt2[name][Math.floor(Math.random() * 2)];
-    a1 = mutateAllele(name, a1);
-    a2 = mutateAllele(name, a2);
+    let a1 = mutateAllele(name, gt1[name][Math.floor(Math.random() * 2)]);
+    let a2 = mutateAllele(name, gt2[name][Math.floor(Math.random() * 2)]);
     child[name] = [a1, a2];
   }
   return child;
@@ -217,7 +203,7 @@ let paused = false;
 let speed = 1;
 let dead = false;
 let selected = null;
-let history = [];   // срезы генофонда по поколениям
+let history = []; 
 
 const canvas = document.getElementById('world');
 const ctx = canvas.getContext('2d');
@@ -231,19 +217,18 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 //  СУЩЕСТВО
 // ============================================================
 class Creature {
-  constructor(x, y, genotype, sex) {
+  constructor(x, y, genotype, sex, role) {
     this.x = x; this.y = y;
     this.genotype = genotype;
     this.sex = sex;                 // 'M' | 'F'
+    this.role = role;               // 'herb' | 'pred'
     this.pheno = phenotype(genotype);
     this.energy = START_ENERGY;
     this.age = 0;
     this.alive = true;
-    this.cooldown = 0;              // тиков до возможности размножения
-    this.id = Math.random().toString(36).slice(2, 9);
+    this.cooldown = 0;
   }
 
-  // Поиск ближайшей еды в радиусе зрения (упрощённо — вся карта)
   findFood() {
     let best = null, bestD = Infinity;
     for (const f of foods) {
@@ -254,13 +239,22 @@ class Creature {
     return best;
   }
 
+  findPrey() {
+    let best = null, bestD = Infinity;
+    for (const c of creatures) {
+      if (c === this || !c.alive || c.role !== 'herb') continue;
+      const d = (c.x - this.x) ** 2 + (c.y - this.y) ** 2;
+      if (d < bestD) { bestD = d; best = c; }
+    }
+    return best;
+  }
+
   moveToward(tx, ty) {
     const dx = tx - this.x, dy = ty - this.y;
     const d = Math.hypot(dx, dy) || 1;
     const step = this.pheno.speed;
     this.x = clamp(this.x + (dx / d) * step, 0, W);
     this.y = clamp(this.y + (dy / d) * step, 0, H);
-    // Стоимость движения зависит от скорости
     this.energy -= MOVE_COST * (0.5 + this.pheno.speed / 4);
   }
 
@@ -269,56 +263,67 @@ class Creature {
     this.age++;
     if (this.cooldown > 0) this.cooldown--;
 
-    // --- Движение к еде ---
-    const food = this.findFood();
-    if (food) {
-      this.moveToward(food.x, food.y);
+    // --- ДВИЖЕНИЕ ---
+    if (this.role === 'pred') {
+      const prey = this.findPrey();
+      if (prey) {
+        this.moveToward(prey.x, prey.y);
+        // Проверка поедания добычи
+        if (Math.hypot(prey.x - this.x, prey.y - this.y) < 8) {
+          prey.alive = false;
+          this.energy += prey.energy * 0.6; // Получаем 60% энергии жертвы
+        }
+      } else {
+        this.x = clamp(this.x + rand(-1, 1) * this.pheno.speed * 0.5, 0, W);
+        this.y = clamp(this.y + rand(-1, 1) * this.pheno.speed * 0.5, 0, H);
+        this.energy -= MOVE_COST * 0.3;
+      }
     } else {
-      // случайное блуждание
-      this.x = clamp(this.x + rand(-1, 1) * this.pheno.speed * 0.5, 0, W);
-      this.y = clamp(this.y + rand(-1, 1) * this.pheno.speed * 0.5, 0, H);
-      this.energy -= MOVE_COST * 0.3;
-    }
-
-    // --- Поедание ---
-    for (const f of foods) {
-      if (f.alive && Math.hypot(f.x - this.x, f.y - this.y) < 6) {
-        f.alive = false;
-        this.energy += ENERGY_PER_FOOD;
-        break;
+      // Травоядные ищут еду
+      const food = this.findFood();
+      if (food) {
+        this.moveToward(food.x, food.y);
+        if (Math.hypot(food.x - this.x, food.y - this.y) < 6) {
+          food.alive = false;
+          this.energy += ENERGY_PER_FOOD;
+        }
+      } else {
+        this.x = clamp(this.x + rand(-1, 1) * this.pheno.speed * 0.5, 0, W);
+        this.y = clamp(this.y + rand(-1, 1) * this.pheno.speed * 0.5, 0, H);
+        this.energy -= MOVE_COST * 0.3;
       }
     }
 
-    // --- Смерть от голода ---
+    // --- СМЕРТЬ ---
     if (this.energy <= 0) { this.alive = false; return; }
-
-    // --- Старость (вероятностная) ---
     let deathChance = 0;
-    if (this.age > OLD_AGE_START) {
-      deathChance = (this.age - OLD_AGE_START) / (MAX_AGE - OLD_AGE_START) * 0.02;
-    }
-    if (this.age > MAX_AGE || Math.random() < deathChance) {
-      this.alive = false;
-      return;
-    }
+    if (this.age > OLD_AGE_START) deathChance = (this.age - OLD_AGE_START) / (MAX_AGE - OLD_AGE_START) * 0.02;
+    if (this.age > MAX_AGE || Math.random() < deathChance) { this.alive = false; return; }
 
-    // --- Размножение (мгновенное, при встрече) ---
+    // --- РАЗМНОЖЕНИЕ ---
     if (this.energy >= REPRO_THRESHOLD && this.cooldown === 0) {
       const partner = this.findPartner();
-      if (partner) {
-        this.reproduce(partner);
-      }
+      if (partner) this.reproduce(partner);
     }
   }
 
   findPartner() {
+    let best = null, bestE = -1;
     for (const c of creatures) {
       if (c === this || !c.alive) continue;
-      if (c.sex === this.sex) continue;
+      if (c.sex === this.sex || c.role !== this.role) continue; // только свой вид и противоположный пол
       if (c.energy < REPRO_THRESHOLD || c.cooldown > 0) continue;
-      if (Math.hypot(c.x - this.x, c.y - this.y) <= REPRO_RADIUS) return c;
+      const d = Math.hypot(c.x - this.x, c.y - this.y);
+      if (d <= REPRO_RADIUS) {
+        // Самки ищут самого энергичного. Самцы ищут любую.
+        if (this.sex === 'F') {
+          if (c.energy > bestE) { bestE = c.energy; best = c; }
+        } else {
+          return c; // самец берет первую попавшуюся
+        }
+      }
     }
-    return null;
+    return best;
   }
 
   reproduce(partner) {
@@ -327,14 +332,20 @@ class Creature {
     this.cooldown = REPRO_COOLDOWN;
     partner.cooldown = REPRO_COOLDOWN;
 
-    const childGT = crossGenotypes(this.genotype, partner.genotype);
-    const childSex = Math.random() < 0.5 ? 'M' : 'F';
-    const child = new Creature(
-      clamp(this.x + rand(-10, 10), 0, W),
-      clamp(this.y + rand(-10, 10), 0, H),
-      childGT, childSex
-    );
-    creatures.push(child);
+    // Проверка на двойню (суммарная энергия высокая)
+    const isDouble = (this.energy + partner.energy) > REPRO_DOUBLE_THRESHOLD;
+    const numChildren = isDouble ? 2 : 1;
+
+    for (let i = 0; i < numChildren; i++) {
+      const childGT = crossGenotypes(this.genotype, partner.genotype);
+      const childSex = Math.random() < 0.5 ? 'M' : 'F';
+      const child = new Creature(
+        clamp(this.x + rand(-15, 15), 0, W),
+        clamp(this.y + rand(-15, 15), 0, H),
+        childGT, childSex, this.role
+      );
+      creatures.push(child);
+    }
   }
 }
 
@@ -348,7 +359,7 @@ function spawnFood() {
 }
 
 // ============================================================
-//  ИНИЦИАЛИЗАЦИЯ / СБРОС
+//  ИНИЦИАЛИЗАЦИЯ
 // ============================================================
 function init(popSize) {
   creatures = []; foods = [];
@@ -356,9 +367,16 @@ function init(popSize) {
   history = [];
   document.getElementById('deadMsg').style.display = 'none';
 
-  for (let i = 0; i < popSize; i++) {
+  const predCount = Math.floor(popSize * 0.2); // 20% хищников
+  const herbCount = popSize - predCount;
+
+  for (let i = 0; i < herbCount; i++) {
     const sex = Math.random() < 0.5 ? 'M' : 'F';
-    creatures.push(new Creature(rand(0, W), rand(0, H), randomGenotype(), sex));
+    creatures.push(new Creature(rand(0, W), rand(0, H), randomGenotype(), sex, 'herb'));
+  }
+  for (let i = 0; i < predCount; i++) {
+    const sex = Math.random() < 0.5 ? 'M' : 'F';
+    creatures.push(new Creature(rand(0, W), rand(0, H), randomGenotype(), sex, 'pred'));
   }
   for (let i = 0; i < FOOD_MAX; i++) foods.push({ x: rand(0, W), y: rand(0, H), alive: true });
 
@@ -371,102 +389,109 @@ function init(popSize) {
 // ============================================================
 function updateStats() {
   const alive = creatures.filter(c => c.alive);
-  const males = alive.filter(c => c.sex === 'M').length;
-  const females = alive.filter(c => c.sex === 'F').length;
-
+  const herbs = alive.filter(c => c.role === 'herb');
+  const preds = alive.filter(c => c.role === 'pred');
+  
   document.getElementById('gen').textContent = generation;
-  document.getElementById('pop').textContent = alive.length;
-  document.getElementById('males').textContent = males;
-  document.getElementById('females').textContent = females;
+  document.getElementById('foodCount').textContent = foods.filter(f => f.alive).length;
+
+  document.getElementById('popHerb').textContent = herbs.length;
+  document.getElementById('malesH').textContent = herbs.filter(c => c.sex === 'M').length;
+  document.getElementById('femalesH').textContent = herbs.filter(c => c.sex === 'F').length;
+
+  document.getElementById('popPred').textContent = preds.length;
+  document.getElementById('malesP').textContent = preds.filter(c => c.sex === 'M').length;
+  document.getElementById('femalesP').textContent = preds.filter(c => c.sex === 'F').length;
 
   if (alive.length === 0) {
     document.getElementById('avgEnergy').textContent = '—';
     document.getElementById('avgAge').textContent = '—';
     return;
   }
-  const avgE = alive.reduce((s, c) => s + c.energy, 0) / alive.length;
-  const avgA = alive.reduce((s, c) => s + c.age, 0) / alive.length;
-  document.getElementById('avgEnergy').textContent = avgE.toFixed(1);
-  document.getElementById('avgAge').textContent = avgA.toFixed(0);
 }
 
 // ============================================================
-//  ГЕНОФОНД: частоты аллелей и генотипов
+//  ГЕНОФОНД
 // ============================================================
 function snapshotGenePool() {
   const alive = creatures.filter(c => c.alive);
   if (alive.length === 0) return;
 
-  const snap = { gen: generation, genes: {} };
-  for (const name in GENES) {
-    const counts = {};
-    for (const a of GENES[name].alleles) counts[a] = 0;
-    let total = 0;
-    for (const c of alive) {
-      for (const allele of c.genotype[name]) {
-        counts[allele] = (counts[allele] || 0) + 1;
-        total++;
+  const snap = { gen: generation, genes: { herb: {}, pred: {} } };
+  
+  // Считаем отдельно для травоядных и хищников
+  for (const role of ['herb', 'pred']) {
+    const group = alive.filter(c => c.role === role);
+    if (group.length === 0) { snap.genes[role] = null; continue; }
+    
+    snap.genes[role] = {};
+    for (const name in GENES) {
+      const counts = {};
+      for (const a of GENES[name].alleles) counts[a] = 0;
+      let total = 0;
+      for (const c of group) {
+        for (const allele of c.genotype[name]) {
+          counts[allele] = (counts[allele] || 0) + 1;
+          total++;
+        }
       }
+      const freq = {};
+      for (const a in counts) freq[a] = counts[a] / total;
+      snap.genes[role][name] = freq;
     }
-    const freq = {};
-    for (const a in counts) freq[a] = counts[a] / total;
-    snap.genes[name] = freq;
   }
   history.push(snap);
 }
 
 // ============================================================
-//  ОТРИСОВКА МИРА
+//  ОТРИСОВКА
 // ============================================================
 function drawWorld() {
   ctx.clearRect(0, 0, W, H);
 
-  // еда
+  // Еда
   ctx.fillStyle = '#22c55e';
   for (const f of foods) {
     if (!f.alive) continue;
-    ctx.beginPath();
-    ctx.arc(f.x, f.y, 2, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(f.x, f.y, 2.5, 0, Math.PI * 2); ctx.fill();
   }
 
-  // существа
+  // Существа
   for (const c of creatures) {
     if (!c.alive) continue;
-
-    // размер зависит от скорости: 4 / 6 / 8
     const r = 3 + c.pheno.speed * 1.5;
-
-    // цвет зависит от фенотипа
     ctx.fillStyle = c.pheno.color === 'bright' ? '#f87171' : '#86efac';
 
-    // обводка: выбранный — белая, кулдаун — серая
     if (c === selected) {
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
     } else if (c.cooldown > 0) {
-      ctx.strokeStyle = 'rgba(148,163,184,0.5)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(148,163,184,0.5)'; ctx.lineWidth = 1;
     } else {
-      ctx.strokeStyle = 'transparent';
-      ctx.lineWidth = 0;
+      ctx.strokeStyle = 'transparent'; ctx.lineWidth = 0;
     }
 
     ctx.beginPath();
-    ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+    if (c.role === 'pred') {
+      // Рисуем треугольник (хищник)
+      ctx.moveTo(c.x, c.y - r);
+      ctx.lineTo(c.x + r, c.y + r);
+      ctx.lineTo(c.x - r, c.y + r);
+      ctx.closePath();
+    } else {
+      // Рисуем круг (травоядный)
+      ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+    }
     ctx.fill();
     if (ctx.lineWidth > 0) ctx.stroke();
 
-    // пол — крошечная точка
+    // Точка пола
     ctx.fillStyle = c.sex === 'M' ? '#60a5fa' : '#f472b6';
-    ctx.beginPath();
-    ctx.arc(c.x, c.y - r - 3, 1.5, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(c.x, c.y - r - 3, 1.5, 0, Math.PI * 2); ctx.fill();
   }
 }
 
 // ============================================================
-//  ПАСПОРТ СУЩЕСТВА
+//  ПАСПОРТ
 // ============================================================
 function renderPassport(c) {
   const el = document.getElementById('passport');
@@ -475,27 +500,19 @@ function renderPassport(c) {
     return;
   }
   const gt = c.genotype;
-
-  // Какие аллели скрыты (рецессивные в гетерозиготе)
   function alleleClass(gene, idx) {
     const a = gt[gene][idx];
     let hidden = false;
-    if (gene === 'color') {
-      // c скрыт, если есть C
-      if (a === 'c' && (gt.color[0] === 'C' || gt.color[1] === 'C')) hidden = true;
-    }
-    if (gene === 'speed') {
-      // в неполном доминировании ничего не скрыто, но помечаем рецессив как «слабый»
-    }
+    if (gene === 'color' && a === 'c' && (gt.color[0] === 'C' || gt.color[1] === 'C')) hidden = true;
     return `allele ${a}${hidden ? ' hidden' : ''}`;
   }
 
-  const speedLabel = c.pheno.speed === 3 ? 'быстрая (SS)' :
-                     c.pheno.speed === 1 ? 'медленная (ss)' : 'средняя (Ss)';
+  const speedLabel = c.pheno.speed === 3 ? 'быстрая (SS)' : c.pheno.speed === 1 ? 'медленная (ss)' : 'средняя (Ss)';
   const colorLabel = c.pheno.color === 'bright' ? 'яркий (C-)' : 'бледный (cc)';
+  const roleLabel = c.role === 'pred' ? '🦁 Хищник' : '🌿 Травоядный';
 
   el.innerHTML = `
-    <div><b>Пол:</b> ${c.sex === 'M' ? '♂ самец' : '♀ самка'} &nbsp; <b>Возраст:</b> ${c.age}</div>
+    <div><b>${roleLabel}</b> &nbsp; <b>Пол:</b> ${c.sex === 'M' ? '♂' : '♀'} &nbsp; <b>Возраст:</b> ${c.age}</div>
     <div><b>Энергия:</b> ${c.energy.toFixed(0)} &nbsp; <b>Кулдаун:</b> ${c.cooldown}</div>
     <div style="margin-top:8px"><b>Генотип:</b></div>
     <div class="dna">
@@ -510,72 +527,60 @@ function renderPassport(c) {
       <span class="${alleleClass('color',1)}">${gt.color[1]}</span>
       <span style="color:#64748b;font-size:11px;align-self:center">→ ${colorLabel}</span>
     </div>
-    <div class="hint">Пунктир — скрытый рецессивный аллель (не проявляется в фенотипе).</div>
   `;
 }
 
 // ============================================================
-//  ГРАФИК ГЕНОФОНДА
+//  ГРАФИК
 // ============================================================
 function drawChart() {
   cctx.clearRect(0, 0, chart.width, chart.height);
   if (history.length < 2) {
-    cctx.fillStyle = '#64748b';
-    cctx.font = '12px sans-serif';
-    cctx.fillText('Накопление данных...', 10, 20);
-    return;
+    cctx.fillStyle = '#64748b'; cctx.font = '12px sans-serif';
+    cctx.fillText('Накопление данных...', 10, 20); return;
   }
 
   const padL = 30, padR = 10, padT = 20, padB = 20;
   const plotW = chart.width - padL - padR;
   const plotH = chart.height - padT - padB;
-
-  // Ось X — номера поколений
   const gens = history.map(h => h.gen);
   const minGen = gens[0], maxGen = gens[gens.length - 1];
   const spanGen = Math.max(1, maxGen - minGen);
 
-  cctx.strokeStyle = '#334155';
-  cctx.lineWidth = 1;
-  // сетка
+  cctx.strokeStyle = '#334155'; cctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = padT + (plotH / 4) * i;
-    cctx.beginPath();
-    cctx.moveTo(padL, y);
-    cctx.lineTo(padL + plotW, y);
-    cctx.stroke();
-    cctx.fillStyle = '#64748b';
-    cctx.font = '9px sans-serif';
+    cctx.beginPath(); cctx.moveTo(padL, y); cctx.lineTo(padL + plotW, y); cctx.stroke();
+    cctx.fillStyle = '#64748b'; cctx.font = '9px sans-serif';
     cctx.fillText((100 - i * 25) + '%', 2, y + 3);
   }
 
-  // Рисуем линии частот: S, s, C, c
+  // Отрисовка линий отдельно для каждого вида
   const series = [
-    { gene: 'speed', allele: 'S', color: '#f97316', label: 'S (быстр.)' },
-    { gene: 'speed', allele: 's', color: '#3b82f6', label: 's (медл.)' },
-    { gene: 'color', allele: 'C', color: '#ef4444', label: 'C (яркий)' },
-    { gene: 'color', allele: 'c', color: '#22c55e', label: 'c (бледн.)' }
+    { role: 'herb', gene: 'speed', allele: 'S', color: '#f97316', label: 'S (быстр. травоядные)' },
+    { role: 'herb', gene: 'speed', allele: 's', color: '#3b82f6', label: 's (медл. травоядные)' },
+    { role: 'pred', gene: 'speed', allele: 'S', color: '#ef4444', label: 'S (быстр. хищники)' },
+    { role: 'pred', gene: 'speed', allele: 's', color: '#8b5cf6', label: 's (медл. хищники)' }
   ];
 
   for (const s of series) {
-    cctx.strokeStyle = s.color;
-    cctx.lineWidth = 2;
+    cctx.strokeStyle = s.color; cctx.lineWidth = 2;
     cctx.beginPath();
-    history.forEach((h, i) => {
-      const freq = h.genes[s.gene][s.allele] ?? 0;
+    let started = false;
+    history.forEach((h) => {
+      if (!h.genes[s.role]) return; // если вид вымер
+      const freq = h.genes[s.role][s.gene][s.allele] ?? 0;
       const x = padL + ((h.gen - minGen) / spanGen) * plotW;
       const y = padT + plotH - freq * plotH;
-      if (i === 0) cctx.moveTo(x, y);
+      if (!started) { cctx.moveTo(x, y); started = true; }
       else cctx.lineTo(x, y);
     });
     cctx.stroke();
   }
 
-  // Легенда
-  const legend = document.getElementById('chartLegend');
-  legend.innerHTML = series.map(s =>
+  document.getElementById('chartLegend').innerHTML = series.map(s =>
     `<span style="color:${s.color}">■</span> ${s.label}`
-  ).join(' &nbsp; ');
+  ).join('<br>');
 }
 
 // ============================================================
@@ -584,29 +589,21 @@ function drawChart() {
 function loop() {
   if (!paused && !dead) {
     for (let s = 0; s < speed; s++) {
-      // еда
       spawnFood();
-
-      // существа
       for (const c of creatures) c.update();
-
-      // очистка
       creatures = creatures.filter(c => c.alive);
       foods = foods.filter(f => f.alive);
 
-      // проверка вымирания
       if (creatures.length === 0) {
         dead = true;
         const msg = document.getElementById('deadMsg');
         msg.style.display = 'block';
-        msg.textContent = `💀 Популяция вымерла на поколении ${generation}. Графики сохранены. Нажми «Сброс», чтобы начать заново.`;
+        msg.textContent = `💀 Популяция вымерла на поколении ${generation}.`;
         updateStats();
         break;
       }
 
       tick++;
-
-      // новое «поколение»
       if (tick % GEN_INTERVAL === 0) {
         generation++;
         snapshotGenePool();
@@ -652,22 +649,29 @@ document.getElementById('resetBtn').onclick = () => {
   document.getElementById('pauseBtn').textContent = 'Пауза';
 };
 
-// Клик по миру — выбор существа
+// Клик по миру: либо выбор существа, либо спавн еды
 canvas.onclick = (e) => {
   const rect = canvas.getBoundingClientRect();
   const mx = (e.clientX - rect.left) * (W / rect.width);
   const my = (e.clientY - rect.top) * (H / rect.height);
+  
   let best = null, bestD = 20;
   for (const c of creatures) {
     if (!c.alive) continue;
     const d = Math.hypot(c.x - mx, c.y - my);
     if (d < bestD) { bestD = d; best = c; }
   }
-  selected = best;
-  renderPassport(selected);
+  
+  if (best) {
+    selected = best; // Если попали по существу — показываем паспорт
+  } else {
+    // Если попали в пустоту — добавляем еду
+    foods.push({ x: mx, y: my, alive: true });
+    selected = null;
+    renderPassport(null);
+  }
 };
 
-// Запуск цикла (стартовый экран перекрывает мир, но цикл уже крутится)
 loop();
 </script>
 </body>
