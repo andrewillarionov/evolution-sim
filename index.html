@@ -2,29 +2,34 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Генетика: Хищники 2.0</title>
+<title>Генетика: Хищники 3.0</title>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; }
   #app { display: flex; flex-wrap: wrap; gap: 16px; padding: 16px; }
 
-  /* Стартовый экран */
+  /* Стартовый экран на весь экран */
   #startScreen {
     position: fixed; inset: 0; z-index: 10;
     background: #0f172a; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 16px;
+    align-items: center; justify-content: center; gap: 24px; padding: 20px;
   }
-  #startScreen h1 { font-size: 28px; margin: 0; color: #38bdf8; }
-  #startScreen p { color: #94a3b8; max-width: 500px; text-align: center; margin: 0; line-height: 1.5; }
-  #startScreen .sliderRow { display: flex; align-items: center; gap: 12px; }
-  #startScreen input[type=range] { width: 260px; accent-color: #2563eb; }
-  #startScreen .val { font-size: 20px; font-weight: bold; color: #38bdf8; min-width: 50px; text-align: center; }
+  #startScreen h1 { font-size: 32px; margin: 0; color: #38bdf8; text-align: center; }
+  #startScreen p { color: #94a3b8; max-width: 500px; text-align: center; margin: 0; line-height: 1.6; font-size: 15px; }
+  
+  /* Увеличенные элементы управления */
+  #startScreen .sliderRow { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 320px; }
+  #startScreen label { font-size: 16px; font-weight: bold; }
+  #startScreen input[type=range] { width: 100%; height: 40px; accent-color: #2563eb; cursor: pointer; }
+  #startScreen .val { font-size: 32px; font-weight: bold; color: #38bdf8; }
   #startScreen button {
-    background: #2563eb; color: white; border: 0; padding: 12px 32px;
-    border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold;
-    transition: background 0.2s;
+    background: #2563eb; color: white; border: 0; padding: 18px 40px;
+    border-radius: 16px; cursor: pointer; font-size: 20px; font-weight: bold;
+    width: 100%; max-width: 320px; transition: background 0.2s;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
   }
   #startScreen button:hover { background: #1d4ed8; }
+  .hint { color: #64748b; font-size: 12px; margin-top: 6px; }
 
   canvas { background: #1e293b; border-radius: 12px; display: block; }
   #panel { flex: 1; min-width: 300px; max-width: 420px; }
@@ -33,7 +38,7 @@
   .stat b { color: #38bdf8; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   button.ctrl {
-    background: #334155; color: white; border: 0; padding: 8px 14px;
+    background: #334155; color: white; border: 0; padding: 10px 14px;
     border-radius: 8px; cursor: pointer; font-size: 13px;
   }
   button.ctrl:hover { background: #475569; }
@@ -47,7 +52,6 @@
   .allele.C { background: #7c2d12; color: #fecaca; }
   .allele.c { background: #14532d; color: #bbf7d0; }
   .allele.hidden { opacity: .55; outline: 1px dashed #94a3b8; }
-  .hint { color: #64748b; font-size: 11px; margin-top: 6px; }
 
   /* Генофонд */
   #genePool { background: #1e293b; border-radius: 12px; padding: 12px; margin-top: 12px; }
@@ -61,17 +65,15 @@
 <body>
 
 <div id="startScreen">
-  <h1>🧬 Хищники 2.0</h1>
-  <p>Травоядные (кружки) едят еду. Хищники (треугольники) охотятся на травоядных. 
-     Самки выбирают самцов с большей энергией. При высокой энергии пары рождаются двойни. 
-     Клик по полю — подкинуть еды!</p>
+  <h1>🧬 Хищники 3.0</h1>
+  <p>Травоядные (кружки) едят еду. Хищники (треугольники) охотятся, но теперь у них есть <b>поле зрения</b> и <b>время переваривания</b>. Голодные хищники опасны, сытые — медлительны.</p>
   <div class="sliderRow">
     <label>Стартовая популяция:</label>
-    <input type="range" id="popSlider" min="20" max="250" value="100" step="10">
+    <input type="range" id="popSlider" min="20" max="300" value="100" step="10">
     <span class="val" id="popVal">100</span>
   </div>
   <button id="startBtn">Начать симуляцию</button>
-  <div class="hint">Хищников будет 20% от стартовой популяции. Баланс обновлён!</div>
+  <div class="hint">Хищников на старте: 5%. Баланс обновлён!</div>
 </div>
 
 <div id="app">
@@ -85,7 +87,7 @@
   </div>
 
   <div id="panel">
-    <h2>Статистика (2.0)</h2>
+    <h2>Статистика (3.0)</h2>
     <div class="stat">Поколение: <b id="gen">0</b></div>
     <div class="stat">Травоядные: <b id="popHerb">0</b> (M: <b id="malesH">0</b>, F: <b id="femalesH">0</b>)</div>
     <div class="stat">Хищники: <b id="popPred">0</b> (M: <b id="malesP">0</b>, F: <b id="femalesP">0</b>)</div>
@@ -112,14 +114,14 @@
 
 <script>
 // ============================================================
-//  КОНСТАНТЫ (ОТБАЛАНСИРОВАННЫЕ)
+//  КОНСТАНТЫ (ХИЩНИКИ 3.0)
 // ============================================================
 const W = 600, H = 600;
-const FOOD_MAX = 450;                 // Больше еды на поле
-const FOOD_SPAWN_CHANCE = 0.6;        // Еда появляется чаще
+const FOOD_MAX = 400;                 
+const FOOD_SPAWN_CHANCE = 0.5;        
 const ENERGY_PER_FOOD = 45;
 const MOVE_COST = 0.12;
-const START_ENERGY = 100;             // Стартовая энергия побольше
+const START_ENERGY = 100;             
 const REPRO_THRESHOLD = 110;
 const REPRO_COST = 50;
 const REPRO_RADIUS = 35;
@@ -129,6 +131,12 @@ const MUTATION_CHANCE = 0.05;
 const MAX_AGE = 1200;
 const OLD_AGE_START = 600;
 const GEN_INTERVAL = 300;
+
+// НОВЫЕ КОНСТАНТЫ ДЛЯ ХИЩНИКОВ
+const PREDATOR_START_PERCENT = 0.05;  // 5% хищников на старте
+const PREDATOR_VISION = 120;          // Радиус зрения хищника
+const PREDATOR_HUNGER_THRESHOLD = 80; // Если энергия ниже — начинает охоту
+const PREDATOR_DIGEST_COOLDOWN = 120; // Тиков на переваривание (после еды)
 
 // ============================================================
 //  ГЕНЕТИКА
@@ -207,6 +215,7 @@ class Creature {
     this.age = 0;
     this.alive = true;
     this.cooldown = 0;
+    this.digestTimer = 0; // Таймер переваривания у хищника
   }
 
   findFood() {
@@ -224,7 +233,10 @@ class Creature {
     for (const c of creatures) {
       if (c === this || !c.alive || c.role !== 'herb') continue;
       const d = (c.x - this.x) ** 2 + (c.y - this.y) ** 2;
-      if (d < bestD) { bestD = d; best = c; }
+      // Ищем только в пределах зрения
+      if (d < bestD && d <= PREDATOR_VISION ** 2) { 
+        bestD = d; best = c; 
+      }
     }
     return best;
   }
@@ -242,26 +254,39 @@ class Creature {
     if (!this.alive) return;
     this.age++;
     if (this.cooldown > 0) this.cooldown--;
+    if (this.digestTimer > 0) this.digestTimer--;
 
     if (this.role === 'pred') {
-      const prey = this.findPrey();
-      if (prey) {
-        this.moveToward(prey.x, prey.y);
-        // Радиус поедания хищника уменьшен до 5
-        if (Math.hypot(prey.x - this.x, prey.y - this.y) < 5) {
-          prey.alive = false;
-          this.energy += prey.energy * 0.6; // 60% энергии жертвы
+      // Хищник охотится ТОЛЬКО если голоден и не переваривает пищу
+      const isHungry = this.energy < PREDATOR_HUNGER_THRESHOLD;
+      const isDigesting = this.digestTimer > 0;
+
+      if (isHungry && !isDigesting) {
+        const prey = this.findPrey();
+        if (prey) {
+          this.moveToward(prey.x, prey.y);
+          if (Math.hypot(prey.x - this.x, prey.y - this.y) < 5) {
+            prey.alive = false;
+            this.energy += prey.energy * 0.6; 
+            this.digestTimer = PREDATOR_DIGEST_COOLDOWN; // Начинаем переваривать
+          }
+        } else {
+          // Блуждание в поисках жертвы
+          this.x = clamp(this.x + rand(-1, 1) * this.pheno.speed * 0.5, 0, W);
+          this.y = clamp(this.y + rand(-1, 1) * this.pheno.speed * 0.5, 0, H);
+          this.energy -= MOVE_COST * 0.4;
         }
       } else {
-        this.x = clamp(this.x + rand(-1, 1) * this.pheno.speed * 0.5, 0, W);
-        this.y = clamp(this.y + rand(-1, 1) * this.pheno.speed * 0.5, 0, H);
-        this.energy -= MOVE_COST * 0.4; // Чуть больше тратят на блуждание
+        // Сытый или переваривающий хищник просто медленно бродит
+        this.x = clamp(this.x + rand(-1, 1) * this.pheno.speed * 0.3, 0, W);
+        this.y = clamp(this.y + rand(-1, 1) * this.pheno.speed * 0.3, 0, H);
+        this.energy -= MOVE_COST * 0.2;
       }
     } else {
+      // Травоядные всегда ищут еду
       const food = this.findFood();
       if (food) {
         this.moveToward(food.x, food.y);
-        // Радиус поедания еды увеличен до 7
         if (Math.hypot(food.x - this.x, food.y - this.y) < 7) {
           food.alive = false;
           this.energy += ENERGY_PER_FOOD;
@@ -342,7 +367,7 @@ function init(popSize) {
   history = [];
   document.getElementById('deadMsg').style.display = 'none';
 
-  const predCount = Math.floor(popSize * 0.2);
+  const predCount = Math.max(1, Math.floor(popSize * PREDATOR_START_PERCENT));
   const herbCount = popSize - predCount;
 
   for (let i = 0; i < herbCount; i++) {
@@ -442,10 +467,13 @@ function drawWorld() {
       ctx.lineTo(c.x + r + 2, c.y + r);
       ctx.lineTo(c.x - r - 2, c.y + r);
       ctx.closePath();
+      // Если хищник переваривает — делаем его полупрозрачным
+      if (c.digestTimer > 0) ctx.globalAlpha = 0.5;
     } else {
       ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
     }
     ctx.fill();
+    ctx.globalAlpha = 1.0; // Сбрасываем прозрачность
     if (ctx.lineWidth > 0) ctx.stroke();
 
     ctx.fillStyle = c.sex === 'M' ? '#60a5fa' : '#f472b6';
@@ -473,9 +501,10 @@ function renderPassport(c) {
   const speedLabel = c.pheno.speed === 3 ? 'быстрая (SS)' : c.pheno.speed === 1 ? 'медленная (ss)' : 'средняя (Ss)';
   const colorLabel = c.pheno.color === 'bright' ? 'яркий (C-)' : 'бледный (cc)';
   const roleLabel = c.role === 'pred' ? '🦁 Хищник' : '🌿 Травоядный';
+  const digestLabel = (c.role === 'pred' && c.digestTimer > 0) ? ` <span style="color:#fbbf24">(Переваривает: ${c.digestTimer})</span>` : '';
 
   el.innerHTML = `
-    <div><b>${roleLabel}</b> &nbsp; <b>Пол:</b> ${c.sex === 'M' ? '♂' : '♀'} &nbsp; <b>Возраст:</b> ${c.age}</div>
+    <div><b>${roleLabel}${digestLabel}</b> &nbsp; <b>Пол:</b> ${c.sex === 'M' ? '♂' : '♀'} &nbsp; <b>Возраст:</b> ${c.age}</div>
     <div><b>Энергия:</b> ${c.energy.toFixed(0)} &nbsp; <b>Кулдаун:</b> ${c.cooldown}</div>
     <div style="margin-top:8px"><b>Генотип:</b></div>
     <div class="dna">
