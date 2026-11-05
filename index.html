@@ -2,13 +2,10 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Генетика и эволюция: Хищники и Половой отбор</title>
+<title>Генетика: Хищники и Половой отбор</title>
 <style>
   * { box-sizing: border-box; }
-  body {
-    margin: 0; font-family: system-ui, -apple-system, sans-serif;
-    background: #0f172a; color: #e2e8f0;
-  }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; }
   #app { display: flex; flex-wrap: wrap; gap: 16px; padding: 16px; }
 
   /* Стартовый экран */
@@ -39,19 +36,11 @@
     border-radius: 8px; cursor: pointer; font-size: 13px;
   }
   button.ctrl:hover { background: #475569; }
-  button.ctrl:disabled { opacity: .4; cursor: default; }
 
   /* Паспорт существа */
-  #passport {
-    background: #1e293b; border-radius: 12px; padding: 12px;
-    margin-top: 12px; font-size: 13px; min-height: 140px;
-  }
+  #passport { background: #1e293b; border-radius: 12px; padding: 12px; margin-top: 12px; font-size: 13px; min-height: 140px; }
   #passport .dna { display: flex; gap: 6px; margin-top: 8px; }
-  .allele {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 28px; height: 28px; border-radius: 6px; font-weight: bold;
-    font-size: 14px;
-  }
+  .allele { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; font-weight: bold; font-size: 14px; }
   .allele.S { background: #7c2d12; color: #fed7aa; }
   .allele.s { background: #1e3a5f; color: #bae6fd; }
   .allele.C { background: #7c2d12; color: #fecaca; }
@@ -64,17 +53,12 @@
   #genePool h3 { margin: 0 0 8px; font-size: 14px; color: #94a3b8; }
   #chart { width: 100%; height: 180px; background: #0f172a; border-radius: 8px; }
 
-  /* Сообщение о вымирании */
-  #deadMsg {
-    display: none; background: #7f1d1d; color: #fecaca; border-radius: 12px;
-    padding: 16px; margin-top: 12px; text-align: center; font-weight: bold;
-  }
+  #deadMsg { display: none; background: #7f1d1d; color: #fecaca; border-radius: 12px; padding: 16px; margin-top: 12px; text-align: center; font-weight: bold; }
   .legend { font-size: 11px; color: #94a3b8; margin-top: 8px; line-height: 1.5; }
 </style>
 </head>
 <body>
 
-<!-- Стартовый экран -->
 <div id="startScreen">
   <h1>🧬 Хищники и Половой отбор</h1>
   <p>Травоядные (кружки) едят еду. Хищники (треугольники) едят травоядных. 
@@ -82,14 +66,13 @@
      Клик по полю — подкинуть еды!</p>
   <div class="sliderRow">
     <label>Стартовая популяция:</label>
-    <input type="range" id="popSlider" min="20" max="250" value="80" step="10">
-    <span class="val" id="popVal">80</span>
+    <input type="range" id="popSlider" min="20" max="250" value="100" step="10">
+    <span class="val" id="popVal">100</span>
   </div>
   <button id="startBtn">Начать симуляцию</button>
   <div class="hint">Хищников будет 20% от стартовой популяции.</div>
 </div>
 
-<!-- Основной интерфейс -->
 <div id="app">
   <div>
     <canvas id="world" width="600" height="600"></canvas>
@@ -119,7 +102,7 @@
     </div>
 
     <div id="genePool">
-      <h3>Генофонд популяции</h3>
+      <h3>Генофонд: Скорость</h3>
       <canvas id="chart" width="380" height="180"></canvas>
       <div class="legend" id="chartLegend"></div>
     </div>
@@ -131,16 +114,16 @@
 //  КОНСТАНТЫ
 // ============================================================
 const W = 600, H = 600;
-const FOOD_MAX = 350; // Еды стало больше, чтобы прокормить травоядных
-const FOOD_SPAWN_CHANCE = 0.3;
+const FOOD_MAX = 400; 
+const FOOD_SPAWN_CHANCE = 0.4;
 const ENERGY_PER_FOOD = 40;
-const MOVE_COST = 0.15;
+const MOVE_COST = 0.12;
 const START_ENERGY = 80;
 const REPRO_THRESHOLD = 100;
 const REPRO_COST = 50;
-const REPRO_RADIUS = 30;
+const REPRO_RADIUS = 35;
 const REPRO_COOLDOWN = 50;
-const REPRO_DOUBLE_THRESHOLD = 200; // Порог для двойни
+const REPRO_DOUBLE_THRESHOLD = 200;
 const MUTATION_CHANCE = 0.05;
 const MAX_AGE = 1200;
 const OLD_AGE_START = 600;
@@ -149,17 +132,13 @@ const GEN_INTERVAL = 300;
 // ============================================================
 //  ГЕНЕТИКА
 // ============================================================
-const GENES = {
-  speed: { alleles: ['S', 's'], default: 's' },
-  color: { alleles: ['C', 'c'], default: 'c' }
-};
+const GENES = { speed: { alleles: ['S', 's'] }, color: { alleles: ['C', 'c'] } };
 
 function phenotype(genotype) {
   const sp = genotype.speed;
   let speed = 2;
   if (sp[0] === 'S' && sp[1] === 'S') speed = 3;
   else if (sp[0] === 's' && sp[1] === 's') speed = 1;
-
   const color = (genotype.color[0] === 'C' || genotype.color[1] === 'C') ? 'bright' : 'pale';
   return { speed, color };
 }
@@ -220,8 +199,8 @@ class Creature {
   constructor(x, y, genotype, sex, role) {
     this.x = x; this.y = y;
     this.genotype = genotype;
-    this.sex = sex;                 // 'M' | 'F'
-    this.role = role;               // 'herb' | 'pred'
+    this.sex = sex;
+    this.role = role; // 'herb' | 'pred'
     this.pheno = phenotype(genotype);
     this.energy = START_ENERGY;
     this.age = 0;
@@ -263,15 +242,13 @@ class Creature {
     this.age++;
     if (this.cooldown > 0) this.cooldown--;
 
-    // --- ДВИЖЕНИЕ ---
     if (this.role === 'pred') {
       const prey = this.findPrey();
       if (prey) {
         this.moveToward(prey.x, prey.y);
-        // Проверка поедания добычи
-        if (Math.hypot(prey.x - this.x, prey.y - this.y) < 8) {
+        if (Math.hypot(prey.x - this.x, prey.y - this.y) < 10) {
           prey.alive = false;
-          this.energy += prey.energy * 0.6; // Получаем 60% энергии жертвы
+          this.energy += prey.energy * 0.8; // Хищник получает 80% энергии жертвы
         }
       } else {
         this.x = clamp(this.x + rand(-1, 1) * this.pheno.speed * 0.5, 0, W);
@@ -279,11 +256,10 @@ class Creature {
         this.energy -= MOVE_COST * 0.3;
       }
     } else {
-      // Травоядные ищут еду
       const food = this.findFood();
       if (food) {
         this.moveToward(food.x, food.y);
-        if (Math.hypot(food.x - this.x, food.y - this.y) < 6) {
+        if (Math.hypot(food.x - this.x, food.y - this.y) < 8) {
           food.alive = false;
           this.energy += ENERGY_PER_FOOD;
         }
@@ -294,13 +270,11 @@ class Creature {
       }
     }
 
-    // --- СМЕРТЬ ---
     if (this.energy <= 0) { this.alive = false; return; }
     let deathChance = 0;
     if (this.age > OLD_AGE_START) deathChance = (this.age - OLD_AGE_START) / (MAX_AGE - OLD_AGE_START) * 0.02;
     if (this.age > MAX_AGE || Math.random() < deathChance) { this.alive = false; return; }
 
-    // --- РАЗМНОЖЕНИЕ ---
     if (this.energy >= REPRO_THRESHOLD && this.cooldown === 0) {
       const partner = this.findPartner();
       if (partner) this.reproduce(partner);
@@ -311,15 +285,14 @@ class Creature {
     let best = null, bestE = -1;
     for (const c of creatures) {
       if (c === this || !c.alive) continue;
-      if (c.sex === this.sex || c.role !== this.role) continue; // только свой вид и противоположный пол
+      if (c.sex === this.sex || c.role !== this.role) continue;
       if (c.energy < REPRO_THRESHOLD || c.cooldown > 0) continue;
       const d = Math.hypot(c.x - this.x, c.y - this.y);
       if (d <= REPRO_RADIUS) {
-        // Самки ищут самого энергичного. Самцы ищут любую.
         if (this.sex === 'F') {
           if (c.energy > bestE) { bestE = c.energy; best = c; }
         } else {
-          return c; // самец берет первую попавшуюся
+          return c; 
         }
       }
     }
@@ -332,7 +305,6 @@ class Creature {
     this.cooldown = REPRO_COOLDOWN;
     partner.cooldown = REPRO_COOLDOWN;
 
-    // Проверка на двойню (суммарная энергия высокая)
     const isDouble = (this.energy + partner.energy) > REPRO_DOUBLE_THRESHOLD;
     const numChildren = isDouble ? 2 : 1;
 
@@ -367,7 +339,7 @@ function init(popSize) {
   history = [];
   document.getElementById('deadMsg').style.display = 'none';
 
-  const predCount = Math.floor(popSize * 0.2); // 20% хищников
+  const predCount = Math.floor(popSize * 0.2);
   const herbCount = popSize - predCount;
 
   for (let i = 0; i < herbCount; i++) {
@@ -402,12 +374,6 @@ function updateStats() {
   document.getElementById('popPred').textContent = preds.length;
   document.getElementById('malesP').textContent = preds.filter(c => c.sex === 'M').length;
   document.getElementById('femalesP').textContent = preds.filter(c => c.sex === 'F').length;
-
-  if (alive.length === 0) {
-    document.getElementById('avgEnergy').textContent = '—';
-    document.getElementById('avgAge').textContent = '—';
-    return;
-  }
 }
 
 // ============================================================
@@ -419,7 +385,6 @@ function snapshotGenePool() {
 
   const snap = { gen: generation, genes: { herb: {}, pred: {} } };
   
-  // Считаем отдельно для травоядных и хищников
   for (const role of ['herb', 'pred']) {
     const group = alive.filter(c => c.role === role);
     if (group.length === 0) { snap.genes[role] = null; continue; }
@@ -449,14 +414,12 @@ function snapshotGenePool() {
 function drawWorld() {
   ctx.clearRect(0, 0, W, H);
 
-  // Еда
   ctx.fillStyle = '#22c55e';
   for (const f of foods) {
     if (!f.alive) continue;
     ctx.beginPath(); ctx.arc(f.x, f.y, 2.5, 0, Math.PI * 2); ctx.fill();
   }
 
-  // Существа
   for (const c of creatures) {
     if (!c.alive) continue;
     const r = 3 + c.pheno.speed * 1.5;
@@ -472,21 +435,18 @@ function drawWorld() {
 
     ctx.beginPath();
     if (c.role === 'pred') {
-      // Рисуем треугольник (хищник)
-      ctx.moveTo(c.x, c.y - r);
-      ctx.lineTo(c.x + r, c.y + r);
-      ctx.lineTo(c.x - r, c.y + r);
+      ctx.moveTo(c.x, c.y - r - 2);
+      ctx.lineTo(c.x + r + 2, c.y + r);
+      ctx.lineTo(c.x - r - 2, c.y + r);
       ctx.closePath();
     } else {
-      // Рисуем круг (травоядный)
       ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
     }
     ctx.fill();
     if (ctx.lineWidth > 0) ctx.stroke();
 
-    // Точка пола
     ctx.fillStyle = c.sex === 'M' ? '#60a5fa' : '#f472b6';
-    ctx.beginPath(); ctx.arc(c.x, c.y - r - 3, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(c.x, c.y - r - 4, 1.5, 0, Math.PI * 2); ctx.fill();
   }
 }
 
@@ -555,12 +515,11 @@ function drawChart() {
     cctx.fillText((100 - i * 25) + '%', 2, y + 3);
   }
 
-  // Отрисовка линий отдельно для каждого вида
   const series = [
-    { role: 'herb', gene: 'speed', allele: 'S', color: '#f97316', label: 'S (быстр. травоядные)' },
-    { role: 'herb', gene: 'speed', allele: 's', color: '#3b82f6', label: 's (медл. травоядные)' },
-    { role: 'pred', gene: 'speed', allele: 'S', color: '#ef4444', label: 'S (быстр. хищники)' },
-    { role: 'pred', gene: 'speed', allele: 's', color: '#8b5cf6', label: 's (медл. хищники)' }
+    { role: 'herb', allele: 'S', color: '#f97316', label: 'S (травоядные)' },
+    { role: 'herb', allele: 's', color: '#3b82f6', label: 's (травоядные)' },
+    { role: 'pred', allele: 'S', color: '#ef4444', label: 'S (хищники)' },
+    { role: 'pred', allele: 's', color: '#8b5cf6', label: 's (хищники)' }
   ];
 
   for (const s of series) {
@@ -568,8 +527,8 @@ function drawChart() {
     cctx.beginPath();
     let started = false;
     history.forEach((h) => {
-      if (!h.genes[s.role]) return; // если вид вымер
-      const freq = h.genes[s.role][s.gene][s.allele] ?? 0;
+      if (!h.genes[s.role]) return;
+      const freq = h.genes[s.role]['speed'][s.allele] ?? 0;
       const x = padL + ((h.gen - minGen) / spanGen) * plotW;
       const y = padT + plotH - freq * plotH;
       if (!started) { cctx.moveTo(x, y); started = true; }
@@ -580,7 +539,7 @@ function drawChart() {
 
   document.getElementById('chartLegend').innerHTML = series.map(s =>
     `<span style="color:${s.color}">■</span> ${s.label}`
-  ).join('<br>');
+  ).join(' &nbsp; ');
 }
 
 // ============================================================
@@ -627,6 +586,7 @@ const popSlider = document.getElementById('popSlider');
 const popVal = document.getElementById('popVal');
 popSlider.oninput = () => popVal.textContent = popSlider.value;
 
+// Запуск по кнопке
 document.getElementById('startBtn').onclick = () => {
   const n = parseInt(popSlider.value, 10);
   document.getElementById('startScreen').style.display = 'none';
@@ -647,15 +607,16 @@ document.getElementById('resetBtn').onclick = () => {
   document.getElementById('startScreen').style.display = 'flex';
   creatures = []; foods = []; dead = false; paused = false; selected = null;
   document.getElementById('pauseBtn').textContent = 'Пауза';
+  document.getElementById('deadMsg').style.display = 'none';
 };
 
-// Клик по миру: либо выбор существа, либо спавн еды
+// Обработка клика (тап по полю или по существу)
 canvas.onclick = (e) => {
   const rect = canvas.getBoundingClientRect();
   const mx = (e.clientX - rect.left) * (W / rect.width);
   const my = (e.clientY - rect.top) * (H / rect.height);
   
-  let best = null, bestD = 20;
+  let best = null, bestD = 25; // Радиус клика по существу
   for (const c of creatures) {
     if (!c.alive) continue;
     const d = Math.hypot(c.x - mx, c.y - my);
@@ -663,15 +624,19 @@ canvas.onclick = (e) => {
   }
   
   if (best) {
-    selected = best; // Если попали по существу — показываем паспорт
+    selected = best; 
+    renderPassport(selected);
   } else {
-    // Если попали в пустоту — добавляем еду
-    foods.push({ x: mx, y: my, alive: true });
+    // Тап по пустому месту — добавляем еду
+    if (foods.length < FOOD_MAX + 100) { // Ограничитель, чтобы не заспамить
+        foods.push({ x: mx, y: my, alive: true });
+    }
     selected = null;
     renderPassport(null);
   }
 };
 
+// Запускаем визуальный цикл (он будет рисовать пустое поле, пока не нажата кнопка Старт)
 loop();
 </script>
 </body>
